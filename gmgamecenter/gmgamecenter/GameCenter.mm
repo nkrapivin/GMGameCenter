@@ -1,3 +1,8 @@
+#include "TargetConditionals.h"
+
+/* build for osx only if BUILDMAC=1 in XCode, or if NOT building for osx. */
+#if (TARGET_OS_OSX && BUILDMAC) || !TARGET_OS_OSX
+
 #import "GameCenter.h"
 
 #if TARGET_OS_OSX
@@ -134,7 +139,7 @@ GameCenter* g_ScrewGM = nil;
         [g_controller presentViewControllerAsModalWindow: gameCenterController];
 #endif
     } else {
-        NSLog(@"GameCenter_PresentView_Achievement No Available Until iOS 14.0 or macOS 11.0");
+        NSLog(@"YYGameCenter: %@", @"GameCenter_PresentView_Achievement No Available Until iOS 14.0 or macOS 11.0");
         return 0;
     }
     return 1;
@@ -189,7 +194,7 @@ GameCenter* g_ScrewGM = nil;
             return 0;
         
         gameCenterController.gameCenterDelegate = self;
-        gameCenterController.viewState = GKGameCenterViewControllerStateLeaderboards;
+        //gameCenterController.viewState = GKGameCenterViewControllerStateLeaderboards;
         
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
@@ -248,7 +253,7 @@ GameCenter* g_ScrewGM = nil;
         else
         {
             success = 0.0;
-            NSLog([error localizedDescription]);
+            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
         }
             
         int dsMapIndex = CreateDsMap(0);
@@ -299,7 +304,7 @@ GameCenter* g_ScrewGM = nil;
             return 0;
     }
     else {
-        NSLog(@"GameCenter_LocalPlayer_IsMultiplayerGamingRestricted No Available Until iOS 13.0 or macOS 10.15");
+        NSLog(@"YYGameCenter: %@", @"GameCenter_LocalPlayer_IsMultiplayerGamingRestricted No Available Until iOS 13.0 or macOS 10.15");
         return 0;
     }
 }
@@ -314,7 +319,7 @@ GameCenter* g_ScrewGM = nil;
             return 0;
     }
     else {
-        NSLog(@"GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted No Available Until iOS 14.0 or macOS 11.0");
+        NSLog(@"YYGameCenter: %@", @"GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted No Available Until iOS 14.0 or macOS 11.0");
         return 0;
     }
 }
@@ -343,7 +348,7 @@ GameCenter* g_ScrewGM = nil;
         else
         {
             dsMapAddDouble(dsMapIndex,"success",0);
-            NSLog([error localizedDescription]);
+            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
         }
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
@@ -365,7 +370,7 @@ GameCenter* g_ScrewGM = nil;
         else
         {
             dsMapAddDouble(dsMapIndex, "success",0);
-            NSLog([error localizedDescription]);
+            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
         }
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
@@ -386,7 +391,7 @@ GameCenter* g_ScrewGM = nil;
         else
         {
             dsMapAddDouble(dsMapIndex, "success",0);
-            NSLog([error localizedDescription]);
+            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
         }
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
@@ -401,7 +406,7 @@ GameCenter* g_ScrewGM = nil;
     {
         if(error != nil)
         {
-            NSLog([error localizedDescription]);
+            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
             int dsMapIndex = CreateDsMap(0);
             dsMapAddString(dsMapIndex, "type","GameCenter_SavedGames_GetData");
             dsMapAddString(dsMapIndex, "name",(char*)[name UTF8String]);
@@ -429,7 +434,7 @@ GameCenter* g_ScrewGM = nil;
                 else
                 {
                     dsMapAddDouble(dsMapIndex, "success",0);
-                    NSLog([error localizedDescription]);
+                    NSLog(@"YYGameCenter: %@", [error localizedDescription]);
                 }
                 CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
             }];
@@ -454,7 +459,7 @@ GameCenter* g_ScrewGM = nil;
         else
         {
             dsMapAddDouble(dsMapIndex, "success",0);
-            NSLog([error localizedDescription]);
+            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
         }
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
@@ -513,24 +518,43 @@ GameCenter* g_ScrewGM = nil;
 //https://developer.apple.com/documentation/gamekit/gkscore?language=objc
 -(double) GameCenter_Leaderboard_Submit: (NSString*) leaderboardID score: (double) score
 {
-    GKScore *mGKScore = [[GKScore alloc] initWithLeaderboardIdentifier:leaderboardID];
-    mGKScore.value = score;
-    [GKScore reportScores: @[mGKScore] withCompletionHandler:^(NSError * _Nullable error)
-    {
-        double success;
-        if(error == nil)
-            success = 1.0;
-        else
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        [GKLeaderboard submitScore:score context:0 player:GKLocalPlayer.local leaderboardIDs:@[ leaderboardID ] completionHandler:^(NSError * _Nullable error) {
+            double success;
+            if(error == nil)
+                success = 1.0;
+            else
+            {
+                success = 0.0;
+                NSLog(@"YYGameCenter: %@", [error localizedDescription]);
+            }
+            
+            int dsMapIndex = CreateDsMap(0);
+            dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Submit");
+            dsMapAddDouble(dsMapIndex, "success", success);
+            CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
+        }];
+    }
+    else {
+        GKScore *mGKScore = [[GKScore alloc] initWithLeaderboardIdentifier:leaderboardID];
+        mGKScore.value = score;
+        [GKScore reportScores: @[mGKScore] withCompletionHandler:^(NSError * _Nullable error)
         {
-            success = 0.0;
-            NSLog([error localizedDescription]);
-        }
-        
-        int dsMapIndex = CreateDsMap(0);
-        dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Submit");
-        dsMapAddDouble(dsMapIndex, "success", success);
-        CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
-    }];
+            double success;
+            if(error == nil)
+                success = 1.0;
+            else
+            {
+                success = 0.0;
+                NSLog(@"YYGameCenter: %@", [error localizedDescription]);
+            }
+            
+            int dsMapIndex = CreateDsMap(0);
+            dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Submit");
+            dsMapAddDouble(dsMapIndex, "success", success);
+            CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
+        }];
+    }
     
     return 1;
 }
@@ -551,7 +575,7 @@ GameCenter* g_ScrewGM = nil;
          else
          {
              success = 0;
-             NSLog([error localizedDescription]);
+             NSLog(@"YYGameCenter: %@", [error localizedDescription]);
          }
          
          int dsMapIndex = CreateDsMap(0);
@@ -573,7 +597,7 @@ GameCenter* g_ScrewGM = nil;
         else
         {
             success = 0;
-            NSLog([error localizedDescription]);
+            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
         }
         
         int dsMapIndex = CreateDsMap(0);
@@ -815,3 +839,5 @@ GMExport extern "C" double GameCenter_Achievement_ResetAll() {
 
 #endif
 
+
+#endif

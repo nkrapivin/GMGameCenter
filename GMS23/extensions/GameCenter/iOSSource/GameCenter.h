@@ -1,4 +1,3 @@
-#if !TARGET_OS_OSX
 #import <GameKit/GameKit.h>
 
 @interface GameCenter:NSObject <GKGameCenterControllerDelegate,GKLocalPlayerListener>
@@ -33,5 +32,3 @@
 -(double) RegisterCallbacks: (NSString*) a1 a2: (NSString*) a2 a3: (NSString*) a3 a4: (NSString*) a4;
 
 @end
-
-#endif
