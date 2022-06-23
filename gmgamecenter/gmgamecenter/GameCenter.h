@@ -6,7 +6,7 @@
 
 @property (nonatomic, strong) NSMutableArray *ArrayOfConflicts;
 
--(double) GameCenter_MacOS_SetWindowHandle:(void*) ptrgamewindowhandle;
+-(double) GameCenter_MacOS_SetWindowHandle:(NSWindow*) ptrgamewindowhandle;
 
 -(double) GameCenter_PresentView_Default;
 -(double) GameCenter_PresentView_Achievements;
@@ -27,7 +27,8 @@
 -(double) GameCenter_SavedGames_ResolveConflict:(double) conflict_ind data:(NSString*) data;
 
 -(double) GameCenter_Leaderboard_Submit: (NSString*) leaderboardID score: (double) score;
--(double) GameCenter_Achievement_Report: (NSString*) identifier percentComplete: (double) percent;
+-(double) GameCenter_Achievement_Report: (NSString*) identifier percentComplete: (double) percent showCompletionBanner:(double) showCompletionBanner;
 -(double) GameCenter_Achievement_ResetAll;
+-(double) RegisterCallbacks: (NSString*) a1 a2: (NSString*) a2 a3: (NSString*) a3 a4: (NSString*) a4;
 
 @end

@@ -33,27 +33,27 @@ const int EVENT_OTHER_SOCIAL = 70;
 extern int CreateDsMap( int _num, ... );
 extern void CreateAsynEventWithDSMap(int dsmapindex, int event_index);
 // but these are... wtf yoyo???
-extern "C" void dsMapAddDouble(int _dsMap, char* _key, double _value);
-extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
+extern "C" void dsMapAddDouble(int _dsMap, const char* _key, double _value);
+extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value);
+
+GameCenter* g_ScrewGM = nil;
 
 @implementation GameCenter
 
 -(id) init {
-    if ( self = [super init] ) {
-        return self;
-    }
-    // ?????????????????
+    self = [super init];
+    g_ScrewGM = self;
     return self;
 }
 
--(double) GameCenter_MacOS_SetWindowHandle:(void*) ptrgamewindowhandle
+-(double) GameCenter_MacOS_SetWindowHandle:(NSWindow*) ptrgamewindowhandle
 {
 #ifndef GMGC_MACOS
     // always return success on iOS, no need to init anything...
     return 1;
 #else
     // the argument type is void* because we are calling this code from C++
-    g_window = (NSWindow*)ptrgamewindowhandle;
+    g_window = ptrgamewindowhandle;
     g_controller = nil;
     if (g_window != nil)
     {
@@ -168,15 +168,14 @@ extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
 
 -(double) GameCenter_PresentView_Leaderboard:(NSString*) leaderboardId leaderboardTimeScope: (double) leaderboardTimeScope playerScope:(double) playerScope
 {
-    GKLeaderboardPlayerScope mGKLeaderboardPlayerScope;
-    
+    GKLeaderboardPlayerScope mGKLeaderboardPlayerScope = GKLeaderboardPlayerScopeGlobal;
     switch((int) leaderboardTimeScope)
     {
         case 0: mGKLeaderboardPlayerScope = GKLeaderboardPlayerScopeGlobal; break;
         case 1: mGKLeaderboardPlayerScope = GKLeaderboardPlayerScopeFriendsOnly; break;
     }
     
-    GKLeaderboardTimeScope mGKLeaderboardTimeScope;
+    GKLeaderboardTimeScope mGKLeaderboardTimeScope = GKLeaderboardTimeScopeToday;
     switch((int) playerScope)
     {
         case 0: mGKLeaderboardTimeScope = GKLeaderboardTimeScopeToday; break;
@@ -222,7 +221,7 @@ extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
     [g_controller dismissViewControllerAnimated:YES completion:nil];
 #else
     // ???????????????????
-    [g_controller dismiss: gameCenterViewController];
+    [g_controller dismissViewController: gameCenterViewController];
 #endif
     int dsMapIndex = CreateDsMap(0);
     dsMapAddString(dsMapIndex, "type", "GameCenter_PresentView_DidFinish");
@@ -234,7 +233,7 @@ extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
 -(double) GameCenter_LocalPlayer_Authenticate
 {
     GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
-    localPlayer.authenticateHandler  = ^(
+    localPlayer.authenticateHandler = ^(
 #ifndef GMGC_MACOS
         UIViewController *
 #else
@@ -262,7 +261,7 @@ extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
 #ifndef GMGC_MACOS
             [g_controller presentViewController: viewController animated:YES completion: NULL];
 #else
-            [g_controller presentViewControllerAsModalWindow: gameCenterController];
+            [g_controller presentViewControllerAsModalWindow: viewController];
 #endif
             [localPlayer registerListener: self];
         }
@@ -538,10 +537,10 @@ extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
 
 //GKAchievement
 //https://developer.apple.com/documentation/gamekit/gkachievement?language=objc
--(double) GameCenter_Achievement_Report: (NSString*) identifier percentComplete: (double) percent
+-(double) GameCenter_Achievement_Report: (NSString*) identifier percentComplete: (double) percent showCompletionBanner:(double) showCompletionBanner
 {
     GKAchievement *achievement = [[GKAchievement alloc] initWithIdentifier: identifier];
-    achievement.showsCompletionBanner = TRUE;
+    achievement.showsCompletionBanner = showCompletionBanner > 0.5;
     
     achievement.percentComplete = (float) percent;
     [GKAchievement reportAchievements:@[achievement] withCompletionHandler:^(NSError *error)
@@ -591,12 +590,25 @@ extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
 //https://developer.apple.com/documentation/gamekit/gkplayer?language=objc
 +(NSString*) GKPlayerJSON: (GKPlayer*) mGKPlayer
 {
-    NSDictionary *mNSDictionary = [NSDictionary dictionaryWithObjectsAndKeys:
-                                   [mGKPlayer alias], @"alias",
-                                   [mGKPlayer displayName], @"displayName",
-                                   [mGKPlayer playerID], @"playerID",
-//                                   [self GKBasePlayerJSON: mGKPlayer], @"GKBasePlayer",
-                                   nil];
+    NSDictionary *mNSDictionary = nil;
+    
+    if (@available(iOS 12.4, macOS 10.14.6, *)) {
+        mNSDictionary = [NSDictionary dictionaryWithObjectsAndKeys:
+                         [mGKPlayer alias], @"alias",
+                         [mGKPlayer displayName], @"displayName",
+                         @"", @"playerID",
+                         [mGKPlayer gamePlayerID], @"gamePlayerID",
+                         [mGKPlayer teamPlayerID], @"teamPlayerID",
+                         nil];
+    }
+    else {
+        mNSDictionary = [NSDictionary dictionaryWithObjectsAndKeys:
+                         [mGKPlayer alias], @"alias",
+                         [mGKPlayer displayName], @"displayName",
+                         [mGKPlayer playerID], @"playerID",
+                         nil];
+    }
+    
     return [GameCenter toJSON:mNSDictionary];
 }
 
@@ -614,5 +626,192 @@ extern "C" void dsMapAddString(int _dsMap, char* _key, char* _value);
         return @"{}";
 }
 
+-(double) RegisterCallbacks: (NSString*) a1 a2: (NSString*) a2 a3: (NSString*) a3 a4: (NSString*) a4 {
+    // does nothing on iOS, the actual implementation is macOS specific.
+    return 1;
+}
+
 @end
+
+#ifndef GMGC_MACOS
+/* do nothing! */
+#else
+
+/* GameCenterMacOS.cpp */
+#include <cstddef>
+#include <cstdint>
+#define  GMExport __attribute__((visibility("default")))
+
+typedef void(*GMCreateAsyncEventWithDSMap_t)(
+    int         iDSMapIndex,
+    int         iEventSubtype
+);
+
+typedef int (*GMCreateDSMap_t)(
+    int         iNumElements /* = 0 */,
+    ... /*
+    const char* pcszNameStringN,
+    double      dValueN,
+    const char* pcszValueStringN */
+);
+
+typedef bool(*GMDSMapAddDouble_t)(
+    int         iDSMapIndex,
+    const char* pcszKeyString,
+    double      dValue
+);
+
+typedef bool(*GMDSMapAddString_t)(
+    int         iDSMapIndex,
+    const char* pcszKeyString,
+    const char* pcszValueString
+);
+
+const char* ReturnGMString(char** storage, NSString* _Nullable input) {
+    if (*storage) {
+        free(*storage);
+        *storage = NULL;
+    }
+    
+    if (input != nil) {
+        const char* inputAsUtf8 = [input UTF8String];
+        if (inputAsUtf8) {
+            *storage = strdup(inputAsUtf8);
+        }
+    }
+    
+    return *storage;
+}
+
+GMExport GMCreateAsyncEventWithDSMap_t GMCreateAsyncEventWithDSMap = NULL;
+GMExport GMCreateDSMap_t               GMCreateDSMap               = NULL;
+GMExport GMDSMapAddDouble_t            GMDSMapAddDouble            = NULL;
+GMExport GMDSMapAddString_t            GMDSMapAddString            = NULL;
+
+GMExport extern "C" void RegisterCallbacks(
+    GMCreateAsyncEventWithDSMap_t pGMF1,
+    GMCreateDSMap_t               pGMF2,
+    GMDSMapAddDouble_t            pGMF3,
+    GMDSMapAddString_t            pGMF4) {
+    /* just assign the function pointers to static variables. */
+    /* the actual exported implementation is below */
+    GMCreateAsyncEventWithDSMap = pGMF1;
+    GMCreateDSMap               = pGMF2;
+    GMDSMapAddDouble            = pGMF3;
+    GMDSMapAddString            = pGMF4;
+    if (g_ScrewGM == nil) {
+        g_ScrewGM = [[GameCenter alloc] init];
+    }
+}
+
+GMExport int CreateDsMap(
+    int _num,
+    ... /* :) */) {
+    /* let's hope this will work correctly... */
+    return GMCreateDSMap(_num /* :) */);
+}
+
+GMExport void CreateAsynEventWithDSMap(
+    int dsmapindex,
+    int event_index) {
+    GMCreateAsyncEventWithDSMap(dsmapindex, event_index);
+}
+
+GMExport extern "C" void dsMapAddDouble(
+    int _dsMap,
+    const char* _key,
+    double _value) {
+    GMDSMapAddDouble(_dsMap, _key, _value);
+}
+
+GMExport extern "C" void dsMapAddString(
+    int _dsMap,
+    const char* _key,
+    const char* _value
+) {
+    GMDSMapAddString(_dsMap, _key, _value);
+}
+
+GMExport extern "C" double GameCenter_MacOS_SetWindowHandle(void* ptrwindow) {
+    return [g_ScrewGM GameCenter_MacOS_SetWindowHandle: (__bridge NSWindow*)ptrwindow];
+}
+
+GMExport extern "C" double GameCenter_PresentView_Default() {
+    return [g_ScrewGM GameCenter_PresentView_Default];
+}
+
+GMExport extern "C" double GameCenter_PresentView_Achievements() {
+    return [g_ScrewGM GameCenter_PresentView_Achievements];
+}
+
+GMExport extern "C" double GameCenter_PresentView_Achievement(const char* achid) {
+    return [g_ScrewGM GameCenter_PresentView_Achievement: [NSString stringWithUTF8String:(achid?achid:"")]];
+}
+
+GMExport extern "C" double GameCenter_PresentView_Leaderboards() {
+    return [g_ScrewGM GameCenter_PresentView_Leaderboards];
+}
+
+GMExport extern "C" double GameCenter_PresentView_Leaderboard(const char* leaderboardId, double leaderboardTimeScope, double playerScope) {
+    return [g_ScrewGM GameCenter_PresentView_Leaderboard:[NSString stringWithUTF8String:(leaderboardId?leaderboardId:"")] leaderboardTimeScope:leaderboardTimeScope playerScope:playerScope];
+}
+
+GMExport extern "C" double GameCenter_LocalPlayer_Authenticate() {
+    return [g_ScrewGM GameCenter_LocalPlayer_Authenticate];
+}
+
+GMExport extern "C" double GameCenter_LocalPlayer_IsAuthenticated() {
+    return [g_ScrewGM GameCenter_LocalPlayer_IsAuthenticated];
+}
+
+GMExport extern "C" double GameCenter_LocalPlayer_IsUnderage() {
+    return [g_ScrewGM GameCenter_LocalPlayer_IsUnderage];
+}
+
+GMExport extern "C" double GameCenter_LocalPlayer_IsMultiplayerGamingRestricted() {
+    return [g_ScrewGM GameCenter_LocalPlayer_IsMultiplayerGamingRestricted];
+}
+
+GMExport extern "C" double GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted() {
+    return [g_ScrewGM GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted];
+}
+
+GMExport extern "C" const char* GameCenter_LocalPlayer_GetInfo() {
+    static char* _Storage = NULL;
+    return ReturnGMString(&_Storage, [g_ScrewGM GameCenter_LocalPlayer_GetInfo]);
+}
+
+GMExport extern "C" double GameCenter_SavedGames_Fetch() {
+    return [g_ScrewGM GameCenter_SavedGames_Fetch];
+}
+
+GMExport extern "C" double GameCenter_SavedGames_Save(const char* name, const char* data) {
+    return [g_ScrewGM GameCenter_SavedGames_Save:[NSString stringWithUTF8String:(name?name:"")] data:[NSString stringWithUTF8String:(data?data:"")]];
+}
+
+GMExport extern "C" double GameCenter_SavedGames_Delete(const char* name) {
+    return [g_ScrewGM GameCenter_SavedGames_Delete:[NSString stringWithUTF8String:(name?name:"")]];
+}
+
+GMExport extern "C" double GameCenter_SavedGames_GetData(const char* name) {
+    return [g_ScrewGM GameCenter_SavedGames_GetData:[NSString stringWithUTF8String:(name?name:"")]];
+}
+
+GMExport extern "C" double GameCenter_SavedGames_ResolveConflict(double conflict_ind, const char* data) {
+    return [g_ScrewGM GameCenter_SavedGames_ResolveConflict:conflict_ind data:[NSString stringWithUTF8String:(data?data:"")]];
+}
+
+GMExport extern "C" double GameCenter_Leaderboard_Submit(const char* leaderboardID, double score) {
+    return [g_ScrewGM GameCenter_Leaderboard_Submit:[NSString stringWithUTF8String:(leaderboardID?leaderboardID:"")] score:score];
+}
+
+GMExport extern "C" double GameCenter_Achievement_Report(const char* identifier, double percent, double showBanner) {
+    return [g_ScrewGM GameCenter_Achievement_Report:[NSString stringWithUTF8String:(identifier?identifier:"")] percentComplete:percent showCompletionBanner:showBanner];
+}
+
+GMExport extern "C" double GameCenter_Achievement_ResetAll() {
+    return [g_ScrewGM GameCenter_Achievement_ResetAll];
+}
+
+#endif
 
