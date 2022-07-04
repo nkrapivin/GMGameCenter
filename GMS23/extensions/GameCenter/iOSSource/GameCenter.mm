@@ -71,12 +71,8 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
     {
         NSLog(@"YYGameCenter: %@", [g_window title]);
         
-        NSResponder* _Nullable vcon = [[g_window contentView] nextResponder];
-        if (vcon != nil)
-        {
-            NSLog(@"YYGameCenter: %@", [vcon className]);
-            g_controller = (NSViewController*)vcon;
-        }
+        g_controller = [g_window contentViewController];
+        NSLog(@"YYGameCenter: %@", [g_controller title]);
         
         if (g_controller != nil)
         {
