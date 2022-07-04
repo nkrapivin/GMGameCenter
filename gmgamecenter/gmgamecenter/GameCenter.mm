@@ -47,6 +47,12 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(id) init {
     self = [super init];
+    if (self != nil)
+    {
+        [[GKLocalPlayer localPlayer] registerListener:self];
+        NSLog(@"YYGameCenter: %@", @"Registering GK listener.");
+    }
+    
     return self;
 }
 
@@ -63,7 +69,15 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
     
     if (g_window != nil)
     {
-        g_controller = [g_window contentViewController];
+        NSLog(@"YYGameCenter: %@", [g_window title]);
+        
+        NSResponder* _Nullable vcon = [[g_window contentView] nextResponder];
+        if (vcon != nil)
+        {
+            NSLog(@"YYGameCenter: %@", [vcon className]);
+            g_controller = (NSViewController*)vcon;
+        }
+        
         if (g_controller != nil)
         {
             NSLog(@"YYGameCenter: %@", @"Both window and controller are set");
@@ -266,7 +280,6 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
         // authentication stages:
         if(viewController != nil) // stage 1: presenting the view controller, sometimes it can jump straight to stage 2.
         {
-            [localPlayer registerListener: self];
 #ifndef GMGC_MACOS
             [g_controller presentViewController: viewController animated:YES completion: NULL];
 #else
@@ -309,7 +322,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(double) GameCenter_LocalPlayer_IsUnderage
 {
-    GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
     if(localPlayer.isUnderage)
         return 1;
     else
@@ -319,7 +332,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 -(double) GameCenter_LocalPlayer_IsMultiplayerGamingRestricted
 {
     if (@available(iOS 13.0, macOS 10.15, *)) {
-        GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+        GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
         if(localPlayer.isMultiplayerGamingRestricted)
             return 1;
         else
@@ -334,7 +347,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 -(double) GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted
 {
     if (@available(iOS 14.0, macOS 11.0, *)) {
-        GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+        GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
         if(localPlayer.isPersonalizedCommunicationRestricted)
             return 1;
         else
@@ -348,13 +361,13 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(NSString*) GameCenter_LocalPlayer_GetInfo
 {
-    GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
     return([GameCenter GKPlayerJSON:localPlayer]);
 }
 
 -(double) GameCenter_SavedGames_Fetch
 {
-    GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
     [localPlayer fetchSavedGamesWithCompletionHandler:^(NSArray<GKSavedGame *> * _Nullable savedGames, NSError * _Nullable error)
     {
         NSMutableArray *array = [[NSMutableArray alloc] init];
@@ -380,7 +393,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(double) GameCenter_SavedGames_Save: (NSString*) name data: (NSString*) mNSData
 {
-    GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
     [localPlayer saveGameData:[mNSData dataUsingEncoding:NSUTF8StringEncoding] withName:name completionHandler:^(GKSavedGame * _Nullable savedGame, NSError * _Nullable error)
     {
         int dsMapIndex = CreateDsMap(0);
@@ -402,7 +415,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(double) GameCenter_SavedGames_Delete: (NSString*) name
 {
-    GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
     [localPlayer deleteSavedGamesWithName:name completionHandler:^(NSError * _Nullable error)
     {
         int dsMapIndex = CreateDsMap(0);
@@ -423,7 +436,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(double) GameCenter_SavedGames_GetData: (NSString*) name
 {
-    GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
     [localPlayer fetchSavedGamesWithCompletionHandler:^(NSArray<GKSavedGame *> * _Nullable savedGames, NSError * _Nullable error)
     {
         if (error != nil)
@@ -474,7 +487,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(double) GameCenter_SavedGames_ResolveConflict:(double) conflict_ind data:(NSString*) data
 {
-    GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
+    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
     [localPlayer resolveConflictingSavedGames:self.ArrayOfConflicts[(int)conflict_ind] withData:[data dataUsingEncoding:NSUTF8StringEncoding] completionHandler:^(NSArray<GKSavedGame *> * _Nullable savedGames, NSError * _Nullable error)
     {
         int dsMapIndex = CreateDsMap(0);
