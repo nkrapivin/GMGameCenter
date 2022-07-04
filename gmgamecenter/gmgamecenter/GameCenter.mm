@@ -289,7 +289,8 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
             [g_controller presentViewController: viewController animated:YES completion: NULL];
 #else
-            [[GKDialogController sharedDialogController] presentViewController: viewController];
+            NSLog(@"YYGameCenter: %@", [viewController className]);
+            [[GKDialogController sharedDialogController] presentViewController: (NSViewController<GKViewController>*)viewController];
 #endif
             dsMapAddString(dsMapIndex, "authentication_state", "presenting_view");
         }
@@ -691,6 +692,165 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
     return 1;
 }
 
+-(double) GameCenter_AccessPoint_SetActive:(double)dactive {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        [GKAccessPoint shared].active = dactive > 0.5;
+        return 1;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_SetActive No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_GetActive {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        return [GKAccessPoint shared].active == YES;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_GetActive No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_SetLocation:(double)dlocation {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        GKAccessPointLocation location = GKAccessPointLocationTopLeading;
+        
+        switch ((int)dlocation) {
+            case 0: location = GKAccessPointLocationTopLeading; break;
+            case 1: location = GKAccessPointLocationTopTrailing; break;
+            case 2: location = GKAccessPointLocationBottomLeading; break;
+            case 3: location = GKAccessPointLocationBottomTrailing; break;
+        }
+        
+        [GKAccessPoint shared].location = location;
+        return 1;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_SetLocation No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_GetLocation {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        GKAccessPointLocation location = [GKAccessPoint shared].location;
+        
+        switch (location) {
+            case GKAccessPointLocationTopLeading: return 0;
+            case GKAccessPointLocationTopTrailing: return 1;
+            case GKAccessPointLocationBottomLeading: return 2;
+            case GKAccessPointLocationBottomTrailing: return 3;
+        }
+        
+        /* technically should never happen */
+        return -1;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_GetLocation No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_IsPresentingGameCenter {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        return [GKAccessPoint shared].isPresentingGameCenter == YES;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_IsPresentingGameCenter No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_IsVisible {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        return [GKAccessPoint shared].visible == YES;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_IsVisible No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_SetShowHighlights:(double)dshow {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        [GKAccessPoint shared].showHighlights = dshow > 0.5;
+        return 1;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_SetShowHighlights No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_GetShowHighlights {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        return [GKAccessPoint shared].showHighlights == YES;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_GetShowHighlights No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_GetCoordinate:(double)dcoordid {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        switch ((int)dcoordid) {
+            case 0: return [GKAccessPoint shared].frameInScreenCoordinates.origin.x;
+            case 1: return [GKAccessPoint shared].frameInScreenCoordinates.origin.y;
+            case 2: return [GKAccessPoint shared].frameInScreenCoordinates.size.width;
+            case 3: return [GKAccessPoint shared].frameInScreenCoordinates.size.height;
+        }
+        
+        return 0;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_GetCoordinate No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_PresentWithState:(double)dstate {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        GKGameCenterViewControllerState state = GKGameCenterViewControllerStateDefault;
+        
+        switch ((int)dstate) {
+            case -1: state = GKGameCenterViewControllerStateDefault; break;
+            case 0: state = GKGameCenterViewControllerStateLeaderboards; break;
+            case 1: state = GKGameCenterViewControllerStateAchievements; break;
+            case 2: state = GKGameCenterViewControllerStateChallenges; break;
+            case 3: state = GKGameCenterViewControllerStateLocalPlayerProfile; break;
+            case 4: state = GKGameCenterViewControllerStateDashboard; break;
+            case 5: state = GKGameCenterViewControllerStateLocalPlayerFriendsList; break;
+        }
+        
+        [[GKAccessPoint shared] triggerAccessPointWithState:state handler:^(void) {
+            
+        }];
+        
+        return 1;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_PresentWithState No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
+-(double) GameCenter_AccessPoint_Present {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        [[GKAccessPoint shared] triggerAccessPointWithHandler:^(void) {
+            
+        }];
+        
+        return 1;
+    }
+    else {
+        NSLog(@"YYGameCenter: %@", @"GameCenter_AccessPoint_Present No Available Until iOS 14.0 or macOS 11.0");
+        return 0;
+    }
+}
+
 @end
 
 #ifndef GMGC_MACOS
@@ -871,6 +1031,50 @@ GMExport extern "C" double GameCenter_Achievement_Report(const char* identifier,
 
 GMExport extern "C" double GameCenter_Achievement_ResetAll() {
     return [g_GameCenterSingleton GameCenter_Achievement_ResetAll];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_SetActive(double dactive) {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_SetActive:dactive];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_GetActive() {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_GetActive];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_SetLocation(double dlocation) {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_SetLocation:dlocation];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_GetLocation() {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_GetLocation];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_IsPresentingGameCenter() {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_IsPresentingGameCenter];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_IsVisible() {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_IsVisible];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_SetShowHighlights(double dshow) {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_SetShowHighlights:dshow];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_GetShowHighlights() {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_GetShowHighlights];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_GetCoordinate(double dcoordid) {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_GetCoordinate:dcoordid];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_PresentWithState(double dstate) {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_PresentWithState:dstate];
+}
+
+GMExport extern "C" double GameCenter_AccessPoint_Present() {
+    return [g_GameCenterSingleton GameCenter_AccessPoint_Present];
 }
 
 #endif

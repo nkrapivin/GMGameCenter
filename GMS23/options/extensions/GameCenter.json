@@ -1,0 +1,9 @@
+{
+  "extensionId": {
+    "name": "GameCenter",
+    "path": "extensions/GameCenter/GameCenter.yy"
+  },
+  "resourceVersion": "1.0",
+  "resourceType": "GMExtensionConfigSet",
+  "configurables": null
+}

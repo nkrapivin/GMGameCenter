@@ -31,4 +31,17 @@
 -(double) GameCenter_Achievement_ResetAll;
 -(double) RegisterCallbacks: (NSString*) a1 a2: (NSString*) a2 a3: (NSString*) a3 a4: (NSString*) a4;
 
+/* GKAccessPoint: https://developer.apple.com/documentation/gamekit/gkaccesspoint?language=objc */
+-(double) GameCenter_AccessPoint_SetActive:(double)dactive;
+-(double) GameCenter_AccessPoint_GetActive;
+-(double) GameCenter_AccessPoint_SetLocation:(double)dlocation;
+-(double) GameCenter_AccessPoint_GetLocation;
+-(double) GameCenter_AccessPoint_IsPresentingGameCenter;
+-(double) GameCenter_AccessPoint_IsVisible;
+-(double) GameCenter_AccessPoint_SetShowHighlights:(double)dshow;
+-(double) GameCenter_AccessPoint_GetShowHighlights;
+-(double) GameCenter_AccessPoint_GetCoordinate:(double)dcoordid;
+-(double) GameCenter_AccessPoint_PresentWithState:(double)dstate;
+-(double) GameCenter_AccessPoint_Present;
+
 @end

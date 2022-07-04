@@ -15,3 +15,8 @@ if (os_type == os_macosx)
 if (!GameCenter_LocalPlayer_Authenticate())
 	show_message_async("The extension doesn't seem to be loaded.");
 
+// Try to setup the Game Center access point.
+GameCenter_AccessPoint_SetActive(true);
+GameCenter_AccessPoint_SetLocation(GameCenter_AccessPoint_Location_BottomLeading);
+GameCenter_AccessPoint_SetShowHighlights(true);
+

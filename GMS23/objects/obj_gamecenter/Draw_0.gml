@@ -8,7 +8,7 @@ draw_set_font(Font_YoYo_20)
 // The 'GameCenter_LocalPlayer_GetInfo' will return a json formatted string containing
 // information related to the currently logged in Player (for details on the information
 // refer to the manual's JSON Structures section).
-draw_text(50,100,"Player info: " + string_replace_all(GameCenter_LocalPlayer_GetInfo(), ":", ":\n"))
+draw_text(50,100,"Player info: " + string_replace_all(GameCenter_LocalPlayer_GetInfo(), ":\"", "\n:\""))
 
 // The 'GameCenter_LocalPlayer_IsAuthenticated' will return a boolean indicating
 // if the user is currently authenticated on not (if not the other functionality will
