@@ -1,6 +1,12 @@
 #include "TargetConditionals.h"
 
-/* build for osx only if BUILDMAC=1 in XCode, or if NOT building for osx. */
+#ifndef BUILDMAC
+/* building inside GameMaker most likely? */
+#define BUILDMAC 0
+#endif
+
+/* build for osx only if BUILDMAC=1 is defined specifically in XCode, or if NOT building for osx. */
+/* this is to workaround a bug in GMAssetCompiler where it copies .mm and .h files from iOS into macOS */
 #if (TARGET_OS_OSX && BUILDMAC) || !TARGET_OS_OSX
 
 #import "GameCenter.h"
@@ -20,18 +26,17 @@ extern
 *g_controller;
 
 ////////////////macOS specific:
-// also see GameCenterMacOS.cpp
 
 #ifndef GMGC_MACOS
 // g_controller is exported by the runner, no need to provide an impl.
 // on macOS it is a little different though
-// we have to get window_handle() from the game and resolve the viewcontroller that way.
+// we have to get window_handle() from the game and use GKDialogController instead.
 // yeah I know, awful, Apple Moment!
 #else
-NSViewController* g_controller = nil;
+NSViewController* g_controller = nil; // not used in macOS code, see GKDialogController.
 NSWindow* g_window = nil;
 // a global class variable for macOS calls.
-GameCenter* g_ScrewGM = nil;
+GameCenter* g_GameCenterSingleton = nil;
 #endif
 
 ////////////////GameMaker interface: macOS implementation is in GameCenterMacOS.cpp
@@ -60,29 +65,27 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 {
 #ifndef GMGC_MACOS
     // always return success on iOS, no need to init anything...
+    NSLog(@"YYGameCenter: %@", @"No need to call GameCenter_MacOS_SetWindowHandle on iOS");
     return 1;
 #else
-    NSLog(@"YYGameCenter: %@", @"Trying to obtain window and controller");
-    
+    NSLog(@"YYGameCenter: %@", @"Trying to obtain window handle from GML");
+
     g_window = ptrgamewindowhandle;
-    g_controller = nil;
-    
     if (g_window != nil)
     {
+        NSLog(@"YYGameCenter: %@", @"Got a valid NSWindow pointer:");
         NSLog(@"YYGameCenter: %@", [g_window title]);
         
-        g_controller = [g_window contentViewController];
-        NSLog(@"YYGameCenter: %@", [g_controller title]);
-        
-        if (g_controller != nil)
+        GKDialogController* dialogController = [GKDialogController sharedDialogController];
+        if (dialogController != nil)
         {
-            NSLog(@"YYGameCenter: %@", @"Both window and controller are set");
-            // only return 1 if everything was successful.
+            dialogController.parentWindow = g_window;
+            NSLog(@"YYGameCenter: %@", @"Successfully set the window handle!");
             return 1;
         }
-        else NSLog(@"YYGameCenter: %@", @"Window is set, controller is nil");
+        else NSLog(@"YYGameCenter: %@", @"GKDialogController pointer is nil.");
     }
-    else NSLog(@"YYGameCenter: %@", @"Window is nil");
+    else NSLog(@"YYGameCenter: %@", @"NSWindow pointer is nil.");
     
     return 0;
 #endif
@@ -102,7 +105,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     } else {
         GKGameCenterViewController *gameCenterController = [[GKGameCenterViewController alloc] init];
@@ -111,7 +114,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     }
     return 1;
@@ -128,7 +131,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     } else {
         GKGameCenterViewController *gameCenterController = [[GKGameCenterViewController alloc] init];
@@ -137,7 +140,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     }
     return 1;
@@ -154,7 +157,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     } else {
         NSLog(@"YYGameCenter: %@", @"GameCenter_PresentView_Achievement No Available Until iOS 14.0 or macOS 11.0");
@@ -174,7 +177,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     } else {
         GKGameCenterViewController *gameCenterController = [[GKGameCenterViewController alloc] init];
@@ -183,7 +186,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     }
     return 1;
@@ -217,7 +220,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     } else {
         GKGameCenterViewController *gameCenterController = [[GKGameCenterViewController alloc] init];
@@ -230,7 +233,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
         [g_controller presentViewController: gameCenterController animated: YES completion:nil];
 #else
-        [g_controller presentViewControllerAsModalWindow: gameCenterController];
+        [[GKDialogController sharedDialogController] presentViewController: gameCenterController];
 #endif
     }
     return 1;
@@ -240,18 +243,25 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 //https://developer.apple.com/documentation/gamekit/gkgamecentercontrollerdelegate?language=objc
 -(void) gameCenterViewControllerDidFinish:(GKGameCenterViewController *)gameCenterViewController;
 {
+    int dsMapIndex = CreateDsMap(0);
+    dsMapAddString(dsMapIndex, "type", "GameCenter_PresentView_DidFinish");
+    
     if (gameCenterViewController != nil)
     {
 #ifndef GMGC_MACOS
         [g_controller dismissViewControllerAnimated:YES completion:nil];
 #else
-        // ???????????????????
-        [g_controller dismissViewController: gameCenterViewController];
+        [[GKDialogController sharedDialogController] dismiss: self];
 #endif
+
+        dsMapAddDouble(dsMapIndex, "success", 1);
+    }
+    else
+    {
+        NSLog(@"YYGameCenter: %@", @"gameCenterViewControllerDidFinish controller is nil");
+        dsMapAddDouble(dsMapIndex, "success", 0);
     }
     
-    int dsMapIndex = CreateDsMap(0);
-    dsMapAddString(dsMapIndex, "type", "GameCenter_PresentView_DidFinish");
     CreateAsynEventWithDSMap(dsMapIndex, EVENT_OTHER_SOCIAL);
 }
 
@@ -279,7 +289,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 #ifndef GMGC_MACOS
             [g_controller presentViewController: viewController animated:YES completion: NULL];
 #else
-            [g_controller presentViewControllerAsModalWindow: viewController];
+            [[GKDialogController sharedDialogController] presentViewController: viewController];
 #endif
             dsMapAddString(dsMapIndex, "authentication_state", "presenting_view");
         }
@@ -749,8 +759,8 @@ GMExport extern "C" void RegisterCallbacks(
     GMCreateDSMap               = pGMF2;
     GMDSMapAddDouble            = pGMF3;
     GMDSMapAddString            = pGMF4;
-    if (g_ScrewGM == nil) {
-        g_ScrewGM = [[GameCenter alloc] init];
+    if (g_GameCenterSingleton == nil) {
+        g_GameCenterSingleton = [[GameCenter alloc] init];
     }
 }
 
@@ -783,84 +793,84 @@ GMExport extern "C" void dsMapAddString(
 }
 
 GMExport extern "C" double GameCenter_MacOS_SetWindowHandle(void* ptrwindow) {
-    return [g_ScrewGM GameCenter_MacOS_SetWindowHandle: (__bridge NSWindow*)(ptrwindow)];
+    return [g_GameCenterSingleton GameCenter_MacOS_SetWindowHandle: (__bridge NSWindow*)(ptrwindow)];
 }
 
 GMExport extern "C" double GameCenter_PresentView_Default() {
-    return [g_ScrewGM GameCenter_PresentView_Default];
+    return [g_GameCenterSingleton GameCenter_PresentView_Default];
 }
 
 GMExport extern "C" double GameCenter_PresentView_Achievements() {
-    return [g_ScrewGM GameCenter_PresentView_Achievements];
+    return [g_GameCenterSingleton GameCenter_PresentView_Achievements];
 }
 
 GMExport extern "C" double GameCenter_PresentView_Achievement(const char* achid) {
-    return [g_ScrewGM GameCenter_PresentView_Achievement: [NSString stringWithUTF8String:(achid?achid:"")]];
+    return [g_GameCenterSingleton GameCenter_PresentView_Achievement: [NSString stringWithUTF8String:(achid?achid:"")]];
 }
 
 GMExport extern "C" double GameCenter_PresentView_Leaderboards() {
-    return [g_ScrewGM GameCenter_PresentView_Leaderboards];
+    return [g_GameCenterSingleton GameCenter_PresentView_Leaderboards];
 }
 
 GMExport extern "C" double GameCenter_PresentView_Leaderboard(const char* leaderboardId, double leaderboardTimeScope, double playerScope) {
-    return [g_ScrewGM GameCenter_PresentView_Leaderboard:[NSString stringWithUTF8String:(leaderboardId?leaderboardId:"")] leaderboardTimeScope:leaderboardTimeScope playerScope:playerScope];
+    return [g_GameCenterSingleton GameCenter_PresentView_Leaderboard:[NSString stringWithUTF8String:(leaderboardId?leaderboardId:"")] leaderboardTimeScope:leaderboardTimeScope playerScope:playerScope];
 }
 
 GMExport extern "C" double GameCenter_LocalPlayer_Authenticate() {
-    return [g_ScrewGM GameCenter_LocalPlayer_Authenticate];
+    return [g_GameCenterSingleton GameCenter_LocalPlayer_Authenticate];
 }
 
 GMExport extern "C" double GameCenter_LocalPlayer_IsAuthenticated() {
-    return [g_ScrewGM GameCenter_LocalPlayer_IsAuthenticated];
+    return [g_GameCenterSingleton GameCenter_LocalPlayer_IsAuthenticated];
 }
 
 GMExport extern "C" double GameCenter_LocalPlayer_IsUnderage() {
-    return [g_ScrewGM GameCenter_LocalPlayer_IsUnderage];
+    return [g_GameCenterSingleton GameCenter_LocalPlayer_IsUnderage];
 }
 
 GMExport extern "C" double GameCenter_LocalPlayer_IsMultiplayerGamingRestricted() {
-    return [g_ScrewGM GameCenter_LocalPlayer_IsMultiplayerGamingRestricted];
+    return [g_GameCenterSingleton GameCenter_LocalPlayer_IsMultiplayerGamingRestricted];
 }
 
 GMExport extern "C" double GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted() {
-    return [g_ScrewGM GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted];
+    return [g_GameCenterSingleton GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted];
 }
 
 GMExport extern "C" const char* GameCenter_LocalPlayer_GetInfo() {
     static char* _Storage = NULL;
-    return ReturnGMString(&_Storage, [g_ScrewGM GameCenter_LocalPlayer_GetInfo]);
+    return ReturnGMString(&_Storage, [g_GameCenterSingleton GameCenter_LocalPlayer_GetInfo]);
 }
 
 GMExport extern "C" double GameCenter_SavedGames_Fetch() {
-    return [g_ScrewGM GameCenter_SavedGames_Fetch];
+    return [g_GameCenterSingleton GameCenter_SavedGames_Fetch];
 }
 
 GMExport extern "C" double GameCenter_SavedGames_Save(const char* name, const char* data) {
-    return [g_ScrewGM GameCenter_SavedGames_Save:[NSString stringWithUTF8String:(name?name:"")] data:[NSString stringWithUTF8String:(data?data:"")]];
+    return [g_GameCenterSingleton GameCenter_SavedGames_Save:[NSString stringWithUTF8String:(name?name:"")] data:[NSString stringWithUTF8String:(data?data:"")]];
 }
 
 GMExport extern "C" double GameCenter_SavedGames_Delete(const char* name) {
-    return [g_ScrewGM GameCenter_SavedGames_Delete:[NSString stringWithUTF8String:(name?name:"")]];
+    return [g_GameCenterSingleton GameCenter_SavedGames_Delete:[NSString stringWithUTF8String:(name?name:"")]];
 }
 
 GMExport extern "C" double GameCenter_SavedGames_GetData(const char* name) {
-    return [g_ScrewGM GameCenter_SavedGames_GetData:[NSString stringWithUTF8String:(name?name:"")]];
+    return [g_GameCenterSingleton GameCenter_SavedGames_GetData:[NSString stringWithUTF8String:(name?name:"")]];
 }
 
 GMExport extern "C" double GameCenter_SavedGames_ResolveConflict(double conflict_ind, const char* data) {
-    return [g_ScrewGM GameCenter_SavedGames_ResolveConflict:conflict_ind data:[NSString stringWithUTF8String:(data?data:"")]];
+    return [g_GameCenterSingleton GameCenter_SavedGames_ResolveConflict:conflict_ind data:[NSString stringWithUTF8String:(data?data:"")]];
 }
 
 GMExport extern "C" double GameCenter_Leaderboard_Submit(const char* leaderboardID, double score) {
-    return [g_ScrewGM GameCenter_Leaderboard_Submit:[NSString stringWithUTF8String:(leaderboardID?leaderboardID:"")] score:score];
+    return [g_GameCenterSingleton GameCenter_Leaderboard_Submit:[NSString stringWithUTF8String:(leaderboardID?leaderboardID:"")] score:score];
 }
 
 GMExport extern "C" double GameCenter_Achievement_Report(const char* identifier, double percent, double showBanner) {
-    return [g_ScrewGM GameCenter_Achievement_Report:[NSString stringWithUTF8String:(identifier?identifier:"")] percentComplete:percent showCompletionBanner:showBanner];
+    return [g_GameCenterSingleton GameCenter_Achievement_Report:[NSString stringWithUTF8String:(identifier?identifier:"")] percentComplete:percent showCompletionBanner:showBanner];
 }
 
 GMExport extern "C" double GameCenter_Achievement_ResetAll() {
-    return [g_ScrewGM GameCenter_Achievement_ResetAll];
+    return [g_GameCenterSingleton GameCenter_Achievement_ResetAll];
 }
 
 #endif
