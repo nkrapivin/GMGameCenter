@@ -1,2 +1,2 @@
 
-leaderboardID = "YYLeaderboard1"
+leaderboardID = "daily"//YYLeaderboard1

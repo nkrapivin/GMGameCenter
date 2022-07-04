@@ -14,8 +14,8 @@ draw_text(50,100,"Player info: " + string_replace_all(GameCenter_LocalPlayer_Get
 // if the user is currently authenticated on not (if not the other functionality will
 // not work correctly). Before using GameCenter functionality you need to authenticate
 // using the method 'GameCenter_LocalPlayer_Authenticate()'.
-draw_text(50,130,"Authenticate: " + string(GameCenter_LocalPlayer_IsAuthenticated()))
+draw_text(50,160,"Authenticate: " + string(GameCenter_LocalPlayer_IsAuthenticated()))
 
 // The 'GameCenter_LocalPlayer_IsUnderage' will return a boolean indicating
 // whether or not the user is underaged.
-draw_text(50,160,"UnderAge: "  + string(GameCenter_LocalPlayer_IsUnderage()))
+draw_text(50,180,"UnderAge: "  + string(GameCenter_LocalPlayer_IsUnderage()))

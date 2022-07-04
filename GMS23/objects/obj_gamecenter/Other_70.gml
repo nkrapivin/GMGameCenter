@@ -1,6 +1,13 @@
 /// @description Handle callbacks
 
 show_debug_message("GC ASYNC = " + json_encode(async_load));
+var error_str = "Success.";
+if (ds_map_exists(async_load, "error_code") && ds_map_exists(async_load, "error_message"))
+{
+	// "Error: 111 - Some error had occurred because because try again......"
+	error_str = "Error: " + string(async_load[? "error_code"]) + " - " + async_load[? "error_message"];
+	show_message_async("Failed " + async_load[? "type"] + "\n" + error_str);
+}
 
 // We create a switch on the 'type' of the event being triggered
 // The type of events used by the GameCenter API starts with "GameCenter_"
@@ -14,16 +21,7 @@ switch(async_load[?"type"])
 	case "GameCenter_Achievement_Report":
 	// @triggered by GameCenter_Achievement_ResetAll()
 	case "GameCenter_Achievement_ResetAll":
-	
-		// At this point on of the requests above just triggered it's callback.
-		// However we still need to check if the task was successfull or not,
-		// for that purposed we can read the flag 'success'.
-		if (!async_load[?"success"])
-		{
-			// Here we just use an async message to inform the user that the
-			// task failed.
-			show_message_async(async_load[?"type"] + " FAILED");
-		}
+		show_debug_message(async_load[? "type"] + " " + error_str);
 		break;
 	
 	// @triggered by GameCenter_PresentView_Default()

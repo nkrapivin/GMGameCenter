@@ -30,6 +30,8 @@ extern
 #else
 NSViewController* g_controller = nil;
 NSWindow* g_window = nil;
+// a global class variable for macOS calls.
+GameCenter* g_ScrewGM = nil;
 #endif
 
 ////////////////GameMaker interface: macOS implementation is in GameCenterMacOS.cpp
@@ -41,13 +43,10 @@ extern void CreateAsynEventWithDSMap(int dsmapindex, int event_index);
 extern "C" void dsMapAddDouble(int _dsMap, const char* _key, double _value);
 extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value);
 
-GameCenter* g_ScrewGM = nil;
-
 @implementation GameCenter
 
 -(id) init {
     self = [super init];
-    g_ScrewGM = self;
     return self;
 }
 
@@ -57,14 +56,23 @@ GameCenter* g_ScrewGM = nil;
     // always return success on iOS, no need to init anything...
     return 1;
 #else
-    // the argument type is void* because we are calling this code from C++
+    NSLog(@"YYGameCenter: %@", @"Trying to obtain window and controller");
+    
     g_window = ptrgamewindowhandle;
     g_controller = nil;
+    
     if (g_window != nil)
     {
-        g_controller = g_window.contentViewController;
-        return 1;
+        g_controller = [g_window contentViewController];
+        if (g_controller != nil)
+        {
+            NSLog(@"YYGameCenter: %@", @"Both window and controller are set");
+            // only return 1 if everything was successful.
+            return 1;
+        }
+        else NSLog(@"YYGameCenter: %@", @"Window is set, controller is nil");
     }
+    else NSLog(@"YYGameCenter: %@", @"Window is nil");
     
     return 0;
 #endif
@@ -222,12 +230,16 @@ GameCenter* g_ScrewGM = nil;
 //https://developer.apple.com/documentation/gamekit/gkgamecentercontrollerdelegate?language=objc
 -(void) gameCenterViewControllerDidFinish:(GKGameCenterViewController *)gameCenterViewController;
 {
+    if (gameCenterViewController != nil)
+    {
 #ifndef GMGC_MACOS
-    [g_controller dismissViewControllerAnimated:YES completion:nil];
+        [g_controller dismissViewControllerAnimated:YES completion:nil];
 #else
-    // ???????????????????
-    [g_controller dismissViewController: gameCenterViewController];
+        // ???????????????????
+        [g_controller dismissViewController: gameCenterViewController];
 #endif
+    }
+    
     int dsMapIndex = CreateDsMap(0);
     dsMapAddString(dsMapIndex, "type", "GameCenter_PresentView_DidFinish");
     CreateAsynEventWithDSMap(dsMapIndex, EVENT_OTHER_SOCIAL);
@@ -237,39 +249,49 @@ GameCenter* g_ScrewGM = nil;
 //https://developer.apple.com/documentation/gamekit/gklocalplayer?language=objc
 -(double) GameCenter_LocalPlayer_Authenticate
 {
-    GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
-    localPlayer.authenticateHandler = ^(
+    [GKLocalPlayer localPlayer].authenticateHandler = ^(
 #ifndef GMGC_MACOS
-        UIViewController *
+        UIViewController
 #else
-        NSViewController *
+        NSViewController
 #endif
-        viewController,
+        * viewController,
         NSError *error)
     {
-        double success;
-        if(error == nil)
-            success = 1.0;
-        else
-        {
-            success = 0.0;
-            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
-        }
-            
+        GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
         int dsMapIndex = CreateDsMap(0);
+        
         dsMapAddString(dsMapIndex, "type", "GameCenter_Authenticate");
-        dsMapAddDouble(dsMapIndex, "success", success);
-        CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
-
-        if(viewController != nil)
+        
+        // authentication stages:
+        if(viewController != nil) // stage 1: presenting the view controller, sometimes it can jump straight to stage 2.
         {
+            [localPlayer registerListener: self];
 #ifndef GMGC_MACOS
             [g_controller presentViewController: viewController animated:YES completion: NULL];
 #else
             [g_controller presentViewControllerAsModalWindow: viewController];
 #endif
-            [localPlayer registerListener: self];
+            dsMapAddString(dsMapIndex, "authentication_state", "presenting_view");
         }
+        else if (localPlayer.isAuthenticated) // stage 2: we're in!
+        {
+            dsMapAddString(dsMapIndex, "authentication_state", "authenticated");
+        }
+        else // something is wrong, viewcontroller is nil, but we are not authenticated?
+        {
+            dsMapAddString(dsMapIndex, "authentication_state", "unknown");
+        }
+        
+        if (error != nil)
+        {
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+        }
+        else dsMapAddDouble(dsMapIndex, "success", 1);
+        
+        CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     };
     
     return 1;
@@ -343,13 +365,13 @@ GameCenter* g_ScrewGM = nil;
         int dsMapIndex = CreateDsMap(0);
         dsMapAddString(dsMapIndex,"type","GameCenter_SavedGames_Fetch");
         dsMapAddString(dsMapIndex,"slots",(char*)[[GameCenter toJSON: array] UTF8String]);
-        if(error == nil)
-            dsMapAddDouble(dsMapIndex,"success",1);
-        else
+        if (error != nil)
         {
-            dsMapAddDouble(dsMapIndex,"success",0);
-            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
         }
+        else dsMapAddDouble(dsMapIndex, "success", 1);
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
     
@@ -365,13 +387,13 @@ GameCenter* g_ScrewGM = nil;
         dsMapAddString(dsMapIndex, "type","GameCenter_SavedGames_Save");
         dsMapAddString(dsMapIndex, "name",(char*)[name UTF8String]);
         dsMapAddString(dsMapIndex, "slot",(char*)[[GameCenter GKSavedGameJSON: savedGame]UTF8String]);
-        if(error == nil)
-            dsMapAddDouble(dsMapIndex, "success",1);
-        else
+        if (error != nil)
         {
-            dsMapAddDouble(dsMapIndex, "success",0);
-            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
         }
+        else dsMapAddDouble(dsMapIndex, "success", 1);
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
     
@@ -386,13 +408,13 @@ GameCenter* g_ScrewGM = nil;
         int dsMapIndex = CreateDsMap(0);
         dsMapAddString(dsMapIndex, "type","GameCenter_SavedGames_Delete");
         dsMapAddString(dsMapIndex, "name",(char*)[name UTF8String]);
-        if(error == nil)
-            dsMapAddDouble(dsMapIndex, "success",1);
-        else
+        if (error != nil)
         {
-            dsMapAddDouble(dsMapIndex, "success",0);
-            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
         }
+        else dsMapAddDouble(dsMapIndex, "success", 1);
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
     
@@ -404,13 +426,14 @@ GameCenter* g_ScrewGM = nil;
     GKLocalPlayer *localPlayer = GKLocalPlayer.localPlayer;
     [localPlayer fetchSavedGamesWithCompletionHandler:^(NSArray<GKSavedGame *> * _Nullable savedGames, NSError * _Nullable error)
     {
-        if(error != nil)
+        if (error != nil)
         {
-            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
             int dsMapIndex = CreateDsMap(0);
             dsMapAddString(dsMapIndex, "type","GameCenter_SavedGames_GetData");
             dsMapAddString(dsMapIndex, "name",(char*)[name UTF8String]);
-            dsMapAddDouble(dsMapIndex, "success",0);
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
             CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
             return;
         }
@@ -423,19 +446,22 @@ GameCenter* g_ScrewGM = nil;
                 int dsMapIndex = CreateDsMap(0);
                 dsMapAddString(dsMapIndex, "type","GameCenter_SavedGames_GetData");
                 dsMapAddString(dsMapIndex, "name",(char*)[name UTF8String]);
-                if(error == nil && data != nil)
+                
+                if (error != nil)
                 {
-                    dsMapAddDouble(dsMapIndex, "success",1);
-                    
+                    dsMapAddDouble(dsMapIndex, "success", 0);
+                    dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+                    dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+                }
+                else dsMapAddDouble(dsMapIndex, "success", 1);
+                
+                if (data != nil)
+                {
                     const void *_Nullable rawData = [data bytes];
                     if(rawData != nil)
                         dsMapAddString(dsMapIndex, "data",(char *)rawData);
                 }
-                else
-                {
-                    dsMapAddDouble(dsMapIndex, "success",0);
-                    NSLog(@"YYGameCenter: %@", [error localizedDescription]);
-                }
+                
                 CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
             }];
             break;
@@ -454,13 +480,13 @@ GameCenter* g_ScrewGM = nil;
         int dsMapIndex = CreateDsMap(0);
         dsMapAddString(dsMapIndex, "type","GameCenter_SavedGames_ResolveConflict");
         dsMapAddDouble(dsMapIndex, "conflict_ind",conflict_ind);
-        if(error == nil)
-            dsMapAddDouble(dsMapIndex, "success",1);
-        else
+        if (error != nil)
         {
-            dsMapAddDouble(dsMapIndex, "success",0);
-            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
         }
+        else dsMapAddDouble(dsMapIndex, "success", 1);
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
     
@@ -520,18 +546,15 @@ GameCenter* g_ScrewGM = nil;
 {
     if (@available(iOS 14.0, macOS 11.0, *)) {
         [GKLeaderboard submitScore:score context:0 player:GKLocalPlayer.local leaderboardIDs:@[ leaderboardID ] completionHandler:^(NSError * _Nullable error) {
-            double success;
-            if(error == nil)
-                success = 1.0;
-            else
-            {
-                success = 0.0;
-                NSLog(@"YYGameCenter: %@", [error localizedDescription]);
-            }
-            
             int dsMapIndex = CreateDsMap(0);
             dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Submit");
-            dsMapAddDouble(dsMapIndex, "success", success);
+            if (error != nil)
+            {
+                dsMapAddDouble(dsMapIndex, "success", 0);
+                dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+                dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+            }
+            else dsMapAddDouble(dsMapIndex, "success", 1);
             CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
         }];
     }
@@ -540,18 +563,16 @@ GameCenter* g_ScrewGM = nil;
         mGKScore.value = score;
         [GKScore reportScores: @[mGKScore] withCompletionHandler:^(NSError * _Nullable error)
         {
-            double success;
-            if(error == nil)
-                success = 1.0;
-            else
-            {
-                success = 0.0;
-                NSLog(@"YYGameCenter: %@", [error localizedDescription]);
-            }
-            
+
             int dsMapIndex = CreateDsMap(0);
             dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Submit");
-            dsMapAddDouble(dsMapIndex, "success", success);
+            if (error != nil)
+            {
+                dsMapAddDouble(dsMapIndex, "success", 0);
+                dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+                dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+            }
+            else dsMapAddDouble(dsMapIndex, "success", 1);
             CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
         }];
     }
@@ -569,19 +590,16 @@ GameCenter* g_ScrewGM = nil;
     achievement.percentComplete = (float) percent;
     [GKAchievement reportAchievements:@[achievement] withCompletionHandler:^(NSError *error)
     {
-         double success;
-         if (error == nil)
-             success = 1;
-         else
-         {
-             success = 0;
-             NSLog(@"YYGameCenter: %@", [error localizedDescription]);
-         }
-         
-         int dsMapIndex = CreateDsMap(0);
-         dsMapAddString(dsMapIndex, "type", "GameCenter_Achievement_Report");
-         dsMapAddDouble(dsMapIndex, "success", success);
-         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
+        int dsMapIndex = CreateDsMap(0);
+        dsMapAddString(dsMapIndex, "type", "GameCenter_Achievement_Report");
+        if (error != nil)
+        {
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+        }
+        else dsMapAddDouble(dsMapIndex, "success", 1);
+        CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
     }];
     
     return 1;
@@ -591,18 +609,15 @@ GameCenter* g_ScrewGM = nil;
 {
     [GKAchievement resetAchievementsWithCompletionHandler:^(NSError * _Nullable error)
     {
-        double success;
-        if (error == nil)
-            success = 1;
-        else
-        {
-            success = 0;
-            NSLog(@"YYGameCenter: %@", [error localizedDescription]);
-        }
-        
         int dsMapIndex = CreateDsMap(0);
         dsMapAddString(dsMapIndex, "type", "GameCenter_Achievement_ResetAll");
-        dsMapAddDouble(dsMapIndex, "success", success);
+        if (error != nil)
+        {
+            dsMapAddDouble(dsMapIndex, "success", 0);
+            dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+            dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+        }
+        else dsMapAddDouble(dsMapIndex, "success", 1);
         CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
         
     }];
@@ -630,6 +645,8 @@ GameCenter* g_ScrewGM = nil;
                          [mGKPlayer alias], @"alias",
                          [mGKPlayer displayName], @"displayName",
                          [mGKPlayer playerID], @"playerID",
+                         @"", @"gamePlayerID",
+                         @"", @"teamPlayerID",
                          nil];
     }
     
@@ -757,7 +774,7 @@ GMExport extern "C" void dsMapAddString(
 }
 
 GMExport extern "C" double GameCenter_MacOS_SetWindowHandle(void* ptrwindow) {
-    return [g_ScrewGM GameCenter_MacOS_SetWindowHandle: (__bridge NSWindow*)ptrwindow];
+    return [g_ScrewGM GameCenter_MacOS_SetWindowHandle: (__bridge NSWindow*)(ptrwindow)];
 }
 
 GMExport extern "C" double GameCenter_PresentView_Default() {

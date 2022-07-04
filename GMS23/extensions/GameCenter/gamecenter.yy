@@ -3,7 +3,7 @@
   "options": [],
   "exportToGame": true,
   "supportedTargets": -1,
-  "extensionVersion": "0.0.1",
+  "extensionVersion": "1.1.0",
   "packageId": "",
   "productId": "",
   "author": "",
@@ -52,12 +52,12 @@
         {"externalName":"GameCenter_PresentView_Achievement","kind":4,"help":"GameCenter_PresentView_Achievement(achievement_id)","hidden":false,"returnType":1,"argCount":0,"args":[
             1,
           ],"resourceVersion":"1.0","name":"GameCenter_PresentView_Achievement","tags":[],"resourceType":"GMExtensionFunction",},
-        {"externalName":"RegisterCallbacks","kind":4,"help":"GameCenter_RegisterCallbacks(please,do,not,call)","hidden":false,"returnType":2,"argCount":0,"args":[
+        {"externalName":"RegisterCallbacks","kind":4,"help":"GameCenter_MacOS_RegisterCallbacks(please,do,NOT,call)","hidden":false,"returnType":2,"argCount":0,"args":[
             1,
             1,
             1,
             1,
-          ],"resourceVersion":"1.0","name":"GameCenter_RegisterCallbacks","tags":[],"resourceType":"GMExtensionFunction",},
+          ],"resourceVersion":"1.0","name":"GameCenter_MacOS_RegisterCallbacks","tags":[],"resourceType":"GMExtensionFunction",},
         {"externalName":"GameCenter_MacOS_SetWindowHandle","kind":4,"help":"GameCenter_MacOS_SetWindowHandle(result_of_window_handle)","hidden":false,"returnType":2,"argCount":0,"args":[
             1,
           ],"resourceVersion":"1.0","name":"GameCenter_MacOS_SetWindowHandle","tags":[],"resourceType":"GMExtensionFunction",},
@@ -89,7 +89,7 @@
         {"name":"GameCenter_Leaderboard_Submit","path":"extensions/GameCenter/GameCenter.yy",},
         {"name":"GameCenter_Achievement_Report","path":"extensions/GameCenter/GameCenter.yy",},
         {"name":"GameCenter_Achievement_ResetAll","path":"extensions/GameCenter/GameCenter.yy",},
-        {"name":"GameCenter_RegisterCallbacks","path":"extensions/GameCenter/GameCenter.yy",},
+        {"name":"GameCenter_MacOS_RegisterCallbacks","path":"extensions/GameCenter/GameCenter.yy",},
         {"name":"GameCenter_MacOS_SetWindowHandle","path":"extensions/GameCenter/GameCenter.yy",},
         {"name":"GameCenter_LocalPlayer_IsMultiplayerGamingRestricted","path":"extensions/GameCenter/GameCenter.yy",},
         {"name":"GameCenter_LocalPlayer_IsPersonalizedCommunicationRestricted","path":"extensions/GameCenter/GameCenter.yy",},
