@@ -3,7 +3,7 @@
   "options": [],
   "exportToGame": true,
   "supportedTargets": -1,
-  "extensionVersion": "1.1.0",
+  "extensionVersion": "1.2.0",
   "packageId": "",
   "productId": "",
   "author": "",
@@ -44,8 +44,9 @@
             2,
             1,
           ],"resourceVersion":"1.0","name":"GameCenter_SavedGames_ResolveConflict","tags":[],"resourceType":"GMExtensionFunction",},
-        {"externalName":"GameCenter_Leaderboard_Submit","kind":4,"help":"GameCenter_Leaderboard_Submit(id,score)","hidden":false,"returnType":2,"argCount":0,"args":[
+        {"externalName":"GameCenter_Leaderboard_Submit","kind":4,"help":"GameCenter_Leaderboard_Submit(id,score,context)","hidden":false,"returnType":2,"argCount":0,"args":[
             1,
+            2,
             2,
           ],"resourceVersion":"1.0","name":"GameCenter_Leaderboard_Submit","tags":[],"resourceType":"GMExtensionFunction",},
         {"externalName":"GameCenter_Achievement_Report","kind":4,"help":"GameCenter_Achievement_Report(identifier,percent,showcompletionbanner)","hidden":false,"returnType":2,"argCount":0,"args":[
@@ -89,6 +90,18 @@
             2,
           ],"resourceVersion":"1.0","name":"GameCenter_AccessPoint_PresentWithState","tags":[],"resourceType":"GMExtensionFunction",},
         {"externalName":"GameCenter_AccessPoint_Present","kind":4,"help":"GameCenter_AccessPoint_Present()","hidden":false,"returnType":2,"argCount":0,"args":[],"resourceVersion":"1.0","name":"GameCenter_AccessPoint_Present","tags":[],"resourceType":"GMExtensionFunction",},
+        {"externalName":"GameCenter_Leaderboard_LoadGlobal","kind":4,"help":"GameCenter_Leaderboard_LoadGlobal(leaderboardID,timeScope,rangeStart,rangeEnd)","hidden":false,"returnType":2,"argCount":0,"args":[
+            1,
+            2,
+            2,
+            2,
+          ],"resourceVersion":"1.0","name":"GameCenter_Leaderboard_LoadGlobal","tags":[],"resourceType":"GMExtensionFunction",},
+        {"externalName":"GameCenter_Leaderboard_LoadFriendsOnly","kind":4,"help":"GameCenter_Leaderboard_LoadFriendsOnly(leaderboardID,timeScope,rangeStart,rangeEnd)","hidden":false,"returnType":2,"argCount":0,"args":[
+            1,
+            2,
+            2,
+            2,
+          ],"resourceVersion":"1.0","name":"GameCenter_Leaderboard_LoadFriendsOnly","tags":[],"resourceType":"GMExtensionFunction",},
       ],"constants":[
         {"value":"0","hidden":false,"resourceVersion":"1.0","name":"GameCenter_Leaderboard_PlayerScope_Global","tags":[],"resourceType":"GMExtensionConstant",},
         {"value":"1","hidden":false,"resourceVersion":"1.0","name":"GameCenter_Leaderboard_PlayerScope_FriendsOnly","tags":[],"resourceType":"GMExtensionConstant",},
@@ -110,6 +123,9 @@
         {"value":"3","hidden":false,"resourceVersion":"1.0","name":"GameCenter_AccessPoint_State_LocalPlayerProfile","tags":[],"resourceType":"GMExtensionConstant",},
         {"value":"4","hidden":false,"resourceVersion":"1.0","name":"GameCenter_AccessPoint_State_Dashboard","tags":[],"resourceType":"GMExtensionConstant",},
         {"value":"5","hidden":false,"resourceVersion":"1.0","name":"GameCenter_AccessPoint_State_LocalPlayerFriendsList","tags":[],"resourceType":"GMExtensionConstant",},
+        {"value":"0","hidden":false,"resourceVersion":"1.0","name":"GameCenter_Leaderboard_Type_Classic","tags":[],"resourceType":"GMExtensionConstant",},
+        {"value":"1","hidden":false,"resourceVersion":"1.0","name":"GameCenter_Leaderboard_Type_Recurring","tags":[],"resourceType":"GMExtensionConstant",},
+        {"value":"-1","hidden":false,"resourceVersion":"1.0","name":"GameCenter_Invalid","tags":[],"resourceType":"GMExtensionConstant",},
       ],"ProxyFiles":[
         {"TargetMask":1,"resourceVersion":"1.0","name":"libGameCenter.dylib","tags":[],"resourceType":"GMProxyFile",},
       ],"copyToTargets":9007199254740998,"order":[
@@ -145,6 +161,8 @@
         {"name":"GameCenter_AccessPoint_GetCoordinate","path":"extensions/GameCenter/GameCenter.yy",},
         {"name":"GameCenter_AccessPoint_PresentWithState","path":"extensions/GameCenter/GameCenter.yy",},
         {"name":"GameCenter_AccessPoint_Present","path":"extensions/GameCenter/GameCenter.yy",},
+        {"name":"GameCenter_Leaderboard_LoadGlobal","path":"extensions/GameCenter/GameCenter.yy",},
+        {"name":"GameCenter_Leaderboard_LoadFriendsOnly","path":"extensions/GameCenter/GameCenter.yy",},
       ],"resourceVersion":"1.0","name":"","tags":[],"resourceType":"GMExtensionFile",},
   ],
   "classname": "GameCenter",

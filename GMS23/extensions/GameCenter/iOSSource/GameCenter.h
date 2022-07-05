@@ -5,6 +5,7 @@
 }
 
 @property (nonatomic, strong) NSMutableArray *ArrayOfConflicts;
+@property (nonatomic) double LastAsyncOpId;
 
 -(double) GameCenter_MacOS_SetWindowHandle:(NSWindow*) ptrgamewindowhandle;
 
@@ -13,6 +14,7 @@
 -(double) GameCenter_PresentView_Achievement:(NSString*) ach_id;
 -(double) GameCenter_PresentView_Leaderboards;
 -(double) GameCenter_PresentView_Leaderboard:(NSString*) leaderboardId leaderboardTimeScope: (double) leaderboardTimeScope playerScope:(double) playerScope;
+
 -(double) GameCenter_LocalPlayer_Authenticate;
 -(double) GameCenter_LocalPlayer_IsAuthenticated;
 -(double) GameCenter_LocalPlayer_IsUnderage;
@@ -26,9 +28,13 @@
 -(double) GameCenter_SavedGames_GetData: (NSString*) name;
 -(double) GameCenter_SavedGames_ResolveConflict:(double) conflict_ind data:(NSString*) data;
 
--(double) GameCenter_Leaderboard_Submit: (NSString*) leaderboardID score: (double) score;
+-(double) GameCenter_Leaderboard_Submit: (NSString*) leaderboardID score: (double) score dcontext: (double) dcontext;
+-(double) GameCenter_Leaderboard_LoadGlobal: (NSString*) leaderboardID timeScope:(double) timeScope rangeStart:(double) rangeStart rangeEnd:(double) rangeEnd;
+-(double) GameCenter_Leaderboard_LoadFriendsOnly: (NSString*) leaderboardID timeScope:(double) timeScope rangeStart:(double) rangeStart rangeEnd:(double) rangeEnd;
+
 -(double) GameCenter_Achievement_Report: (NSString*) identifier percentComplete: (double) percent showCompletionBanner:(double) showCompletionBanner;
 -(double) GameCenter_Achievement_ResetAll;
+
 -(double) RegisterCallbacks: (NSString*) a1 a2: (NSString*) a2 a3: (NSString*) a3 a4: (NSString*) a4;
 
 /* GKAccessPoint: https://developer.apple.com/documentation/gamekit/gkaccesspoint?language=objc */

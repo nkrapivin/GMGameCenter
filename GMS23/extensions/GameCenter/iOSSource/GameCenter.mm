@@ -562,10 +562,10 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 //GKScore
 //https://developer.apple.com/documentation/gamekit/gkscore?language=objc
--(double) GameCenter_Leaderboard_Submit: (NSString*) leaderboardID score: (double) score
+-(double) GameCenter_Leaderboard_Submit: (NSString*) leaderboardID score: (double) score dcontext: (double) dcontext
 {
     if (@available(iOS 14.0, macOS 11.0, *)) {
-        [GKLeaderboard submitScore:score context:0 player:GKLocalPlayer.local leaderboardIDs:@[ leaderboardID ] completionHandler:^(NSError * _Nullable error) {
+        [GKLeaderboard submitScore:(NSInteger)score context:(NSUInteger)dcontext player:[GKLocalPlayer localPlayer] leaderboardIDs:@[ leaderboardID ] completionHandler:^(NSError * _Nullable error) {
             int dsMapIndex = CreateDsMap(0);
             dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Submit");
             if (error != nil)
@@ -580,7 +580,8 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
     }
     else {
         GKScore *mGKScore = [[GKScore alloc] initWithLeaderboardIdentifier:leaderboardID];
-        mGKScore.value = score;
+        mGKScore.value = (int64_t)score;
+        mGKScore.context = (uint64_t)dcontext;
         [GKScore reportScores: @[mGKScore] withCompletionHandler:^(NSError * _Nullable error)
         {
 
@@ -598,6 +599,249 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
     }
     
     return 1;
+}
+
++(double) Util_NSDateToGMDate:(NSDate*)date {
+    // converts NSDate into a number for GameMaker date functions.
+    return ( ( ( ( (double) [date timeIntervalSince1970] ) + 0.5 ) / 86400.0 ) + 25569.0 );
+}
+
+-(double) GameCenter_Leaderboard_LoadGeneric: (NSString*) leaderboardID timeScope:(double) timeScope rangeStart:(double) rangeStart rangeEnd:(double) rangeEnd playerScope:(double) playerScope {
+    if (@available(iOS 14.0, macOS 11.0, *)) {
+        double myId = self.LastAsyncOpId++;
+        [GKLeaderboard loadLeaderboardsWithIDs:@[ leaderboardID ] completionHandler:^(NSArray<GKLeaderboard*>* _Nullable leaderboards, NSError* _Nullable error) {
+            // did not even load basic data about the leaderboard :(
+            if (error != nil || leaderboards == nil || [leaderboards count] < 1) {
+                int dsMapIndex = CreateDsMap(0);
+                dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Load");
+                dsMapAddString(dsMapIndex, "leaderboard_id", (char*)[leaderboardID UTF8String]);
+                dsMapAddDouble(dsMapIndex, "id", myId);
+                dsMapAddDouble(dsMapIndex, "time_scope", timeScope);
+                dsMapAddDouble(dsMapIndex, "range_start", rangeStart);
+                dsMapAddDouble(dsMapIndex, "range_end", rangeEnd);
+                dsMapAddDouble(dsMapIndex, "player_scope", playerScope);
+                dsMapAddString(dsMapIndex, "leaderboard_title", "");
+                dsMapAddString(dsMapIndex, "leaderboard_group", "");
+                dsMapAddDouble(dsMapIndex, "leaderboard_type", -1);
+                dsMapAddDouble(dsMapIndex, "leaderboard_start_date", -1);
+                dsMapAddDouble(dsMapIndex, "leaderboard_next_start_date", -1);
+                dsMapAddDouble(dsMapIndex, "leaderboard_duration", -1);
+                
+                if (error != nil) {
+                    dsMapAddDouble(dsMapIndex, "success", 0);
+                    dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+                    dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+                }
+                else dsMapAddDouble(dsMapIndex, "success", 1);
+                
+                dsMapAddDouble(dsMapIndex, "total_players_count", -1);
+                
+                /* dummy local player info */
+                dsMapAddDouble(dsMapIndex, "local_context", -1);
+                dsMapAddDouble(dsMapIndex, "local_date", -1);
+                dsMapAddDouble(dsMapIndex, "local_rank", -1);
+                dsMapAddDouble(dsMapIndex, "local_score", -1);
+                dsMapAddString(dsMapIndex, "local_formatted_score", "");
+                dsMapAddString(dsMapIndex, "local_info", "{}");
+                
+                dsMapAddDouble(dsMapIndex, "entries", 0);
+                
+                CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
+                return;
+            }
+            
+            GKLeaderboardPlayerScope ps = GKLeaderboardPlayerScopeGlobal;
+            switch ((int)playerScope) {
+                case 0: ps = GKLeaderboardPlayerScopeGlobal; break;
+                case 1: ps = GKLeaderboardPlayerScopeFriendsOnly; break;
+            }
+            
+            GKLeaderboardTimeScope ts = GKLeaderboardTimeScopeToday;
+            switch ((int)timeScope) {
+                case 0: ts = GKLeaderboardTimeScopeToday; break;
+                case 1: ts = GKLeaderboardTimeScopeWeek; break;
+                case 2: ts = GKLeaderboardTimeScopeAllTime; break;
+            }
+            
+            NSRange r = NSMakeRange((NSUInteger)rangeStart, (NSUInteger)rangeEnd);
+            
+            GKLeaderboard* lb = [leaderboards objectAtIndex:0];
+            [lb loadEntriesForPlayerScope:ps timeScope:ts range:r completionHandler:^(GKLeaderboardEntry* _Nullable_result localPlayerEntry, NSArray<GKLeaderboardEntry*>* _Nullable entries, NSInteger totalPlayerCount, NSError* _Nullable error) {
+                int dsMapIndex = CreateDsMap(0);
+                dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Load");
+                dsMapAddString(dsMapIndex, "leaderboard_id", (char*)[leaderboardID UTF8String]);
+                dsMapAddDouble(dsMapIndex, "id", myId);
+                dsMapAddDouble(dsMapIndex, "time_scope", timeScope);
+                dsMapAddDouble(dsMapIndex, "range_start", rangeStart);
+                dsMapAddDouble(dsMapIndex, "range_end", rangeEnd);
+                dsMapAddDouble(dsMapIndex, "player_scope", playerScope);
+                dsMapAddString(dsMapIndex, "leaderboard_title", (char*)[[lb title] UTF8String]);
+                dsMapAddString(dsMapIndex, "leaderboard_group", (char*)[[lb groupIdentifier] UTF8String]);
+                double lbtype = -1;
+                switch ([lb type]) {
+                    case GKLeaderboardTypeClassic: lbtype = 0; break;
+                    case GKLeaderboardTypeRecurring: lbtype = 1; break;
+                }
+                dsMapAddDouble(dsMapIndex, "leaderboard_type", lbtype);
+                dsMapAddDouble(dsMapIndex, "leaderboard_start_date", [GameCenter Util_NSDateToGMDate:[lb startDate]]);
+                dsMapAddDouble(dsMapIndex, "leaderboard_next_start_date", [GameCenter Util_NSDateToGMDate:[lb nextStartDate]]);
+                dsMapAddDouble(dsMapIndex, "leaderboard_duration", [lb duration]);
+                
+                if (error != nil) {
+                    dsMapAddDouble(dsMapIndex, "success", 0);
+                    dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+                    dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+                }
+                else dsMapAddDouble(dsMapIndex, "success", 1);
+                
+                dsMapAddDouble(dsMapIndex, "total_players_count", totalPlayerCount);
+                
+                if (localPlayerEntry == nil) {
+                    dsMapAddDouble(dsMapIndex, "local_context", [localPlayerEntry context]);
+                    dsMapAddDouble(dsMapIndex, "local_date", [GameCenter Util_NSDateToGMDate:[localPlayerEntry date]]);
+                    dsMapAddDouble(dsMapIndex, "local_rank", [localPlayerEntry rank]);
+                    dsMapAddDouble(dsMapIndex, "local_score", [localPlayerEntry score]);
+                    dsMapAddString(dsMapIndex, "local_formatted_score", (char*)[[localPlayerEntry formattedScore] UTF8String]);
+                    dsMapAddString(dsMapIndex, "local_info", (char*)[[GameCenter GKPlayerJSON:[localPlayerEntry player]] UTF8String]);
+                }
+                else {
+                    /* dummy local player info */
+                    dsMapAddDouble(dsMapIndex, "local_context", -1);
+                    dsMapAddDouble(dsMapIndex, "local_date", -1);
+                    dsMapAddDouble(dsMapIndex, "local_rank", -1);
+                    dsMapAddDouble(dsMapIndex, "local_score", -1);
+                    dsMapAddString(dsMapIndex, "local_formatted_score", "");
+                    dsMapAddString(dsMapIndex, "local_info", "{}");
+                }
+                
+                if (entries == nil || [entries count] < 1) {
+                    /* don't even bother with entries... */
+                    dsMapAddDouble(dsMapIndex, "entries", 0);
+                }
+                else {
+                    dsMapAddDouble(dsMapIndex, "entries", [entries count]);
+                    for (NSUInteger i = 0; i < [entries count]; ++i) {
+                        GKLeaderboardEntry* e = [entries objectAtIndex:i];
+                        
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_context_%lu", i] UTF8String], e?[e context]:-1);
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_date_%lu", i] UTF8String], e?[GameCenter Util_NSDateToGMDate:[e date]]:-1);
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_rank_%lu", i] UTF8String], e?[e rank]:-1);
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_score_%lu", i] UTF8String], e?[e score]:-1);
+                        dsMapAddString(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_formatted_score_%lu", i] UTF8String], e?(char*)[[e formattedScore] UTF8String]:"");
+                        dsMapAddString(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_info_%lu", i] UTF8String], e?(char*)[[GameCenter GKPlayerJSON:[e player]] UTF8String]:"{}");
+                    }
+                    
+                }
+                
+                CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
+                /* we're done here */
+            }];
+        }];
+        
+        return myId;
+    }
+    else {
+        GKLeaderboard *req = [[GKLeaderboard alloc] init];
+        if (req != nil) {
+            double myId = self.LastAsyncOpId++;
+            
+            req.identifier = leaderboardID;
+            
+            GKLeaderboardPlayerScope ps = GKLeaderboardPlayerScopeGlobal;
+            switch ((int)playerScope) {
+                case 0: ps = GKLeaderboardPlayerScopeGlobal; break;
+                case 1: ps = GKLeaderboardPlayerScopeFriendsOnly; break;
+            }
+            req.playerScope = ps;
+            
+            GKLeaderboardTimeScope ts = GKLeaderboardTimeScopeToday;
+            switch ((int)timeScope) {
+                case 0: ts = GKLeaderboardTimeScopeToday; break;
+                case 1: ts = GKLeaderboardTimeScopeWeek; break;
+                case 2: ts = GKLeaderboardTimeScopeAllTime; break;
+            }
+            req.timeScope = ts;
+            
+            NSRange r = NSMakeRange((NSUInteger)rangeStart, (NSUInteger)rangeEnd);
+            req.range = r;
+            
+            [req loadScoresWithCompletionHandler:^(NSArray<GKScore*>* _Nullable scores, NSError* _Nullable error) {
+                int dsMapIndex = CreateDsMap(0);
+                dsMapAddString(dsMapIndex, "type", "GameCenter_Leaderboard_Load");
+                dsMapAddString(dsMapIndex, "leaderboard_id", (char*)[leaderboardID UTF8String]);
+                dsMapAddDouble(dsMapIndex, "id", myId);
+                dsMapAddDouble(dsMapIndex, "time_scope", timeScope);
+                dsMapAddDouble(dsMapIndex, "range_start", rangeStart);
+                dsMapAddDouble(dsMapIndex, "range_end", rangeEnd);
+                dsMapAddDouble(dsMapIndex, "player_scope", playerScope);
+                dsMapAddString(dsMapIndex, "leaderboard_title", (char*)[[req title] UTF8String]);
+                dsMapAddString(dsMapIndex, "leaderboard_group", (char*)[[req groupIdentifier] UTF8String]);
+                /* sadly not present in old API */
+                dsMapAddDouble(dsMapIndex, "leaderboard_type", -1);
+                dsMapAddDouble(dsMapIndex, "leaderboard_start_date", -1);
+                dsMapAddDouble(dsMapIndex, "leaderboard_next_start_date", -1);
+                dsMapAddDouble(dsMapIndex, "leaderboard_duration", -1);
+                
+                if (error != nil) {
+                    dsMapAddDouble(dsMapIndex, "success", 0);
+                    dsMapAddDouble(dsMapIndex, "error_code", [error code]);
+                    dsMapAddString(dsMapIndex, "error_message", (char*)[[error localizedDescription] UTF8String]);
+                }
+                else dsMapAddDouble(dsMapIndex, "success", 1);
+                
+                dsMapAddDouble(dsMapIndex, "total_players_count", [req maxRange]);
+                
+                if ([req localPlayerScore] == nil) {
+                    /* dummy local player info */
+                    dsMapAddDouble(dsMapIndex, "local_context", -1);
+                    dsMapAddDouble(dsMapIndex, "local_date", -1);
+                    dsMapAddDouble(dsMapIndex, "local_rank", -1);
+                    dsMapAddDouble(dsMapIndex, "local_score", -1);
+                    dsMapAddString(dsMapIndex, "local_formatted_score", "");
+                    dsMapAddString(dsMapIndex, "local_info", "{}");
+                }
+                else {
+                    GKScore* e = [req localPlayerScore];
+                    dsMapAddDouble(dsMapIndex, "local_context", [e context]);
+                    dsMapAddDouble(dsMapIndex, "local_date", [GameCenter Util_NSDateToGMDate:[e date]]);
+                    dsMapAddDouble(dsMapIndex, "local_rank", [e rank]);
+                    dsMapAddDouble(dsMapIndex, "local_score", [e value]);
+                    dsMapAddString(dsMapIndex, "local_formatted_score", (char*)[[e formattedValue] UTF8String]);
+                    dsMapAddString(dsMapIndex, "local_info", (char*)[[GameCenter GKPlayerJSON:[e player]] UTF8String]);
+                }
+                
+                if (scores == nil || [scores count] < 1) {
+                    dsMapAddDouble(dsMapIndex, "entries", 0);
+                }
+                else {
+                    dsMapAddDouble(dsMapIndex, "entries", [scores count]);
+                    for (NSUInteger i = 0; i < [scores count]; ++i) {
+                        GKScore* e = [scores objectAtIndex:i];
+                        
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_context_%lu", i] UTF8String], e?[e context]:-1);
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_date_%lu", i] UTF8String], e?[GameCenter Util_NSDateToGMDate:[e date]]:-1);
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_rank_%lu", i] UTF8String], e?[e rank]:-1);
+                        dsMapAddDouble(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_score_%lu", i] UTF8String], e?[e value]:-1);
+                        dsMapAddString(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_formatted_score_%lu", i] UTF8String], e?(char*)[[e formattedValue] UTF8String]:"");
+                        dsMapAddString(dsMapIndex, (char*)[[NSString stringWithFormat:@"entry_info_%lu", i] UTF8String], e?(char*)[[GameCenter GKPlayerJSON:[e player]] UTF8String]:"{}");
+                    }
+                }
+                
+                CreateAsynEventWithDSMap(dsMapIndex,EVENT_OTHER_SOCIAL);
+            }];
+            
+            return myId;
+        }
+        
+        return -1;
+    }
+}
+
+-(double) GameCenter_Leaderboard_LoadGlobal: (NSString*) leaderboardID timeScope:(double) timeScope rangeStart:(double) rangeStart rangeEnd:(double) rangeEnd {
+    return [self GameCenter_Leaderboard_LoadGeneric:leaderboardID timeScope:timeScope rangeStart:rangeStart rangeEnd:rangeEnd playerScope:0];
+}
+-(double) GameCenter_Leaderboard_LoadFriendsOnly: (NSString*) leaderboardID timeScope:(double) timeScope rangeStart:(double) rangeStart rangeEnd:(double) rangeEnd {
+    return [self GameCenter_Leaderboard_LoadGeneric:leaderboardID timeScope:timeScope rangeStart:rangeStart rangeEnd:rangeEnd playerScope:1];
 }
 
 //GKAchievement
@@ -689,6 +933,7 @@ extern "C" void dsMapAddString(int _dsMap, const char* _key, const char* _value)
 
 -(double) RegisterCallbacks: (NSString*) a1 a2: (NSString*) a2 a3: (NSString*) a3 a4: (NSString*) a4 {
     // does nothing on iOS, the actual implementation is macOS specific.
+    NSLog(@"YYGameCenter: %@", @"RegisterCallbacks should never be called on iOS. nik was here.");
     return 1;
 }
 
@@ -1021,8 +1266,16 @@ GMExport extern "C" double GameCenter_SavedGames_ResolveConflict(double conflict
     return [g_GameCenterSingleton GameCenter_SavedGames_ResolveConflict:conflict_ind data:[NSString stringWithUTF8String:(data?data:"")]];
 }
 
-GMExport extern "C" double GameCenter_Leaderboard_Submit(const char* leaderboardID, double score) {
-    return [g_GameCenterSingleton GameCenter_Leaderboard_Submit:[NSString stringWithUTF8String:(leaderboardID?leaderboardID:"")] score:score];
+GMExport extern "C" double GameCenter_Leaderboard_Submit(const char* leaderboardID, double score, double dcontext) {
+    return [g_GameCenterSingleton GameCenter_Leaderboard_Submit:[NSString stringWithUTF8String:(leaderboardID?leaderboardID:"")] score:score dcontext:dcontext];
+}
+
+GMExport extern "C" double GameCenter_Leaderboard_LoadGlobal(const char* leaderboardID, double timeScope, double rangeStart, double rangeEnd) {
+    return [g_GameCenterSingleton GameCenter_Leaderboard_LoadGlobal: [NSString stringWithUTF8String:(leaderboardID?leaderboardID:"")] timeScope:timeScope rangeStart:rangeStart rangeEnd:rangeEnd];
+}
+
+GMExport extern "C" double GameCenter_Leaderboard_LoadFriendsOnly(const char* leaderboardID, double timeScope, double rangeStart, double rangeEnd) {
+    return [g_GameCenterSingleton GameCenter_Leaderboard_LoadFriendsOnly: [NSString stringWithUTF8String:(leaderboardID?leaderboardID:"")] timeScope:timeScope rangeStart:rangeStart rangeEnd:rangeEnd];
 }
 
 GMExport extern "C" double GameCenter_Achievement_Report(const char* identifier, double percent, double showBanner) {

@@ -1,6 +1,7 @@
 {
   "resources": [
     {"id":{"name":"Obj_GameCenter","path":"objects/Obj_GameCenter/Obj_GameCenter.yy",},"order":0,},
+    {"id":{"name":"Obj_Leaderboard_UI_Programmatic","path":"objects/Obj_Leaderboard_UI_Programmatic/Obj_Leaderboard_UI_Programmatic.yy",},"order":3,},
     {"id":{"name":"Spr_YoYo_button","path":"sprites/Spr_YoYo_button/Spr_YoYo_button.yy",},"order":1,},
     {"id":{"name":"Obj_GameCenter_SavedGames_Slot","path":"objects/Obj_GameCenter_SavedGames_Slot/Obj_GameCenter_SavedGames_Slot.yy",},"order":6,},
     {"id":{"name":"Spr_GameCenter_SavedGames_point","path":"sprites/Spr_GameCenter_SavedGames_point/Spr_GameCenter_SavedGames_point.yy",},"order":0,},
