@@ -1,5 +1,7 @@
 /// @description Leaderboard data handler
 
+event_inherited();
+
 var s = "Game Center Leaderboard Data:\n";
 
 	// string:

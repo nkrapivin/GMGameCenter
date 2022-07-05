@@ -2,7 +2,9 @@
 
 event_inherited()
 
-text = "Fetch (as Dialog)"
+textNormal = "Fetch as Dialog"
+textBusy = "Busy..."
+text = textNormal
 leaderboardID = ""
 asyncOpId = GameCenter_Invalid
 asyncBusy = false

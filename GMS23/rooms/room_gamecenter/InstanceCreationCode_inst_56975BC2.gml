@@ -1,0 +1,2 @@
+
+leaderboardID = "daily"//YYLeaderboard1

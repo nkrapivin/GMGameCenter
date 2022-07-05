@@ -1,5 +1,7 @@
 /// @description Fetch data from leaderboard
 
+event_inherited();
+
 // wait for whatever event to finish please...
 if (asyncBusy) exit;
 
